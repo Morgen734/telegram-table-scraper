@@ -1,0 +1,5 @@
+    - name: Send to Telegram
+      run: python send_to_telegram.py
+      env:
+        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        CHAT_ID: ${{ secrets.CHAT_ID }}
