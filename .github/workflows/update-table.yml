@@ -1,40 +1,38 @@
-name: Update League Table
+name: Update Persian Gulf Pro League Table
+
 on:
   schedule:
-    - cron: '0 1 * * *'   # هر روز ساعت 01:00 UTC
-  workflow_dispatch:
+    - cron: "0 */6 * * *"   # هر ۶ ساعت یکبار
+  workflow_dispatch:        # اجرا دستی
 
 jobs:
-  scrape:
+  update:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
 
-    - name: Install dependencies
-      run: pip install requests beautifulsoup4
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-    - name: Run scraper
-      run: python scrape_table.py > table.json
+      - name: Run scraper
+        run: python scrape_table.py
 
-    - name: Commit and push table.json
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "actions@users.noreply.github.com"
-        git add table.json
-        git commit -m "Update table (automated)" || echo "No changes to commit"
-        git push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit updated table.json
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add table.json
+          git commit -m "Update table.json" || echo "No changes"
+          git push
 
-    - name: Send to Telegram
-      run: python send_to_telegram.py
-      env:
-        BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-        CHAT_ID: ${{ secrets.CHAT_ID }}
+      - name: Send to Telegram
+        run: python send_to_telegram.py
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
