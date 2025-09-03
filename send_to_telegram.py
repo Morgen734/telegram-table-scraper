@@ -1,28 +1,23 @@
-import requests
-import json
+# send_to_telegram.py
 import os
+import json
+import requests
 
-# متغیرها
-BOT_TOKEN = os.getenv("BOT_TOKEN")  # توکن بات
-CHAT_ID = os.getenv("CHAT_ID")      # chat_id کانال (مثلاً -1001234567890)
-
-def load_table():
-    with open("table.json", "r", encoding="utf-8") as f:
-        return json.load(f)
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
 
 def format_table(data):
-    lines = ["🏆 جدول لیگ برتر خلیج فارس:"]
+    lines = [f"📊 {data['league']} ({data['season']})\n"]
     for row in data["table"]:
-        lines.append(f"{row['position']}. {row['team']} - {row['points']} امتیاز")
+        lines.append(f"{row['position']}. {row['team']} - {row['points']} pts")
     return "\n".join(lines)
 
-def send_message(text):
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": text}
-    r = requests.post(url, json=payload)
-    r.raise_for_status()
-
 if __name__ == "__main__":
-    table = load_table()
-    msg = format_table(table)
-    send_message(msg)
+    with open("table.json", encoding="utf-8") as f:
+        data = json.load(f)
+
+    text = format_table(data)
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    resp = requests.post(url, data={"chat_id": CHAT_ID, "text": text})
+    resp.raise_for_status()
+    print("✅ جدول به تلگرام ارسال شد.")
