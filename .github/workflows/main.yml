@@ -1,0 +1,32 @@
+name: Scrape Football Table
+
+on:
+  schedule:
+    # این کد را در ابتدای هر ساعت اجرا می‌کند (مثلاً ساعت 1:00، 2:00 و ...)
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    # این خط به شما اجازه می‌دهد که به صورت دستی هم آن را اجرا کنید
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 lxml
+
+      - name: Run scraper
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+        run: python scrape_and_post.py
