@@ -1,3 +1,38 @@
+name: Update League Table
+on:
+  schedule:
+    - cron: '0 1 * * *'   # هر روز ساعت 01:00 UTC
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: pip install requests beautifulsoup4
+
+    - name: Run scraper
+      run: python scrape_table.py > table.json
+
+    - name: Commit and push table.json
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "actions@users.noreply.github.com"
+        git add table.json
+        git commit -m "Update table (automated)" || echo "No changes to commit"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Send to Telegram
       run: python send_to_telegram.py
       env:
