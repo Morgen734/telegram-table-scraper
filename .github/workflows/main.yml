@@ -2,10 +2,10 @@ name: Scrape Football Table
 
 on:
   schedule:
-    # This runs the code at the top of every hour
+    # این کد را در ابتدای هر ساعت اجرا می‌کند
     - cron: '0 * * * *'
   workflow_dispatch:
-    # This allows you to run it manually
+    # این خط به شما اجازه می‌دهد که به صورت دستی هم آن را اجرا کنید
 
 jobs:
   scrape:
@@ -26,7 +26,7 @@ jobs:
           pip install requests beautifulsoup4 lxml
 
       - name: Run scraper
-        # 'env' and 'run' must have the same indentation
+        # 'env' و 'run' باید دقیقا در یک سطح و با یک فاصله‌گذاری باشند
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
