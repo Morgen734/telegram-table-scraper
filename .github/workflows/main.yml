@@ -2,7 +2,7 @@ name: Scrape Football Table
 
 on:
   schedule:
-    # این کد را در ابتدای هر ساعت اجرا می‌کند (مثلاً ساعت 1:00، 2:00 و ...)
+    # این کد را در ابتدای هر ساعت اجرا می‌کند
     - cron: '0 * * * *'
   workflow_dispatch:
     # این خط به شما اجازه می‌دهد که به صورت دستی هم آن را اجرا کنید
@@ -29,4 +29,6 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+          # --- این خط مهم جا افتاده بود ---
+          THESPORTSDB_API_KEY: ${{ secrets.THESPORTSDB_API_KEY }}
         run: python scrape_and_post.py
