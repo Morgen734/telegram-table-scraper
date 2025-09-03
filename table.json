@@ -1,0 +1,8 @@
+{
+  "league": "Persian Gulf Pro League",
+  "table": [
+    { "position": 1, "team": "سپاهان", "points": 30, "played": 12, "win": 9, "draw": 3, "loss": 0 },
+    { "position": 2, "team": "پرسپولیس", "points": 28, "played": 12, "win": 8, "draw": 4, "loss": 0 },
+    { "position": 3, "team": "استقلال", "points": 27, "played": 12, "win": 8, "draw": 3, "loss": 1 }
+  ]
+}
