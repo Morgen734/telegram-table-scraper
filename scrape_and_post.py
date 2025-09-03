@@ -1,54 +1,50 @@
 import os
 import requests
-from bs4 import BeautifulSoup
 
 # خواندن اطلاعات از سکرت‌های گیت‌هاب
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHANNEL_ID = os.environ.get("CHANNEL_ID")
-# پیام در کانال خصوصی شما همیشه ویرایش می‌شود تا کانال شلوغ نشود
 MESSAGE_ID_FILE = "last_message_id.txt" 
 
-def get_table_from_varzesh3():
-    """جدول لیگ را از سایت ورزش سه استخراج می‌کند و به صورت متن فرمت‌شده برمی‌گرداند."""
-    url = "https://www.varzesh3.com/football/league/6/%D9%84%DB%8C%DA%AF-%D8%A8%D8%B1%D8%AA%D8%B1-%D8%A7%DB%8C%D8%B1%D8%A7%D9%86"
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+def get_table_from_api():
+    """جدول لیگ را مستقیماً از API داخلی سایت ورزش سه دریافت می‌کند."""
+    # این لینک، منبع اصلی داده‌های جدول در خود سایت است و بسیار پایدارتر از HTML است
+    url = "https://service.varzesh3.com/v2/leagues/6/standings"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'}
     
     try:
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
-        soup = BeautifulSoup(response.content, "lxml")
-        
-        # --- تغییر اصلی اینجاست ---
-        # کلاس جدول در سایت ورزش سه تغییر کرده است
-        league_table = soup.find("div", class_="standing-table")
+        data = response.json()
 
-        if not league_table:
-            return "❌ ساختار جدول در سایت ورزش سه تغییر کرده است. (نسخه جدید)"
+        # استخراج لیست تیم‌ها از پاسخ JSON
+        standings = data.get("data", {}).get("standings")
 
-        table_text = "📊 **آخرین وضعیت جدول لیگ برتر (منبع: ورزش سه)**\n\n"
+        if not standings:
+            return "❌ API سایت ورزش سه داده‌ای برنگرداند یا ساختار آن تغییر کرده است."
+
+        table_text = "📊 **آخرین وضعیت جدول لیگ برتر (منبع: Varzesh3 API)**\n\n"
         table_text += "`"
         table_text += "R | تیم         | B | W | D | L | Pts\n"
         table_text += "-------------------------------------\n"
 
-        # ساختار ردیف‌ها نیز تغییر کرده است
-        rows = league_table.find_all("div", class_="standing-table-row")
-        for row in rows:
-            cols = row.find_all("div", class_="standing-table-cell")
-            
-            if len(cols) < 10: continue # برای رد کردن ردیف‌های نامعتبر
+        # خواندن اطلاعات هر تیم از داده‌های API
+        for team in standings:
+            rank = team.get("rank", "-")
+            team_name = team.get("team", {}).get("name_fa", "تیم نامشخص")
+            played = team.get("games_played", "-")
+            wins = team.get("wins", "-")
+            draws = team.get("draws", "-")
+            losses = team.get("losses", "-")
+            points = team.get("points", "-")
 
-            rank, team_name, played, wins, draws, losses, points = (
-                cols[0].text.strip(), cols[2].text.strip(), cols[3].text.strip(),
-                cols[4].text.strip(), cols[5].text.strip(), cols[6].text.strip(),
-                cols[9].text.strip()
-            )
-            table_text += f"{rank:<2}| {team_name:<12}| {played:<2}| {wins:<2}| {draws:<2}| {losses:<2}| {points:<3}\n"
+            table_text += f"{str(rank):<2}| {team_name:<12}| {str(played):<2}| {str(wins):<2}| {str(draws):<2}| {str(losses):<2}| {str(points):<3}\n"
         
         table_text += "`"
         return table_text
     except Exception as e:
-        print(f"Error scraping table: {e}")
-        return f"⚠️ خطایی در دریافت اطلاعات از سایت ورزش سه رخ داد:\n`{e}`"
+        print(f"Error getting data from API: {e}")
+        return f"⚠️ خطایی در دریافت اطلاعات از API ورزش سه رخ داد:\n`{e}`"
 
 def send_or_edit_telegram_message(message):
     """
@@ -68,25 +64,21 @@ def send_or_edit_telegram_message(message):
         "parse_mode": "Markdown"
     }
     
-    # اگر شناسه پیام قبلی را داریم، آن را ویرایش می‌کنیم
     if last_message_id:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/editMessageText"
         payload["message_id"] = last_message_id
-    # در غیر این صورت، یک پیام جدید می‌فرستیم
     else:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
     response = requests.post(url, data=payload)
     response_json = response.json()
 
-    # اگر ویرایش ناموفق بود (مثلاً پیام حذف شده)، یک پیام جدید بفرست
     if not response_json.get("ok") and last_message_id:
         url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
         payload.pop("message_id")
         response = requests.post(url, data=payload)
         response_json = response.json()
 
-    # شناسه پیام جدید را برای اجرای بعدی ذخیره کن
     if response_json.get("ok"):
         new_message_id = response_json["result"]["message_id"]
         with open(MESSAGE_ID_FILE, "w") as f:
@@ -96,5 +88,5 @@ def send_or_edit_telegram_message(message):
         print(f"Failed to send/edit message: {response.text}")
 
 if __name__ == "__main__":
-    table = get_table_from_varzesh3()
+    table = get_table_from_api()
     send_or_edit_telegram_message(table)
