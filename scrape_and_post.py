@@ -14,9 +14,10 @@ def get_table_from_thesportsdb():
     اگر جدول فصل جاری موجود نباشد، به صورت خودکار جدول فصل قبل را نمایش می‌دهد.
     """
     current_year = datetime.now().year
+    # --- تغییر اصلی اینجاست: فرمت فصل اصلاح شد ---
     seasons_to_try = [
-        f"{current_year}-{current_year + 1}",  # ابتدا فصل جاری را امتحان می‌کند
-        f"{current_year - 1}-{current_year}"   # در صورت نبود اطلاعات، فصل قبل را امتحان می‌کند
+        str(current_year),        # ابتدا فصل جاری را امتحان می‌کند (مثلاً 2025)
+        str(current_year - 1)     # در صورت نبود اطلاعات، فصل قبل را امتحان می‌کند (مثلاً 2024)
     ]
     
     headers = {
@@ -30,15 +31,13 @@ def get_table_from_thesportsdb():
         
         try:
             response = requests.get(url, headers=headers, timeout=20)
-            response.raise_for_status()
+            response.raise_for_status() # اگر کد وضعیت خطا باشد (مثل 404)، اینجا متوقف می‌شود
             data = response.json()
             standings = data.get("table")
 
-            # اگر جدول معتبر و غیرخالی پیدا شد، آن را پردازش و برمی‌گرداند
             if standings:
                 print(f"Success! Found table for season: {season}")
-                season_display = season.split('-')[0]
-                table_text = f"📊 **جدول لیگ برتر خلیج فارس - فصل {season_display}**\n\n"
+                table_text = f"📊 **جدول لیگ برتر خلیج فارس - فصل {season}**\n\n"
                 table_text += "`"
                 table_text += "R | تیم         | B | W | D | L | Pts\n"
                 table_text += "-------------------------------------\n"
@@ -58,9 +57,13 @@ def get_table_from_thesportsdb():
                 table_text += "`"
                 return table_text
 
-        except requests.exceptions.RequestException as e:
-            print(f"A connection error occurred: {e}")
-            return f"⚠️ خطایی در ارتباط با سرویس TheSportsDB رخ داد:\n`{e}`"
+        except requests.exceptions.HTTPError as e:
+            # اگر خطای 404 برای فصل جاری رخ داد، به سراغ فصل بعد می‌رود
+            print(f"HTTP Error for season {season}: {e}. Trying next season.")
+            continue # ادامه حلقه و تست فصل بعدی
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            return f"⚠️ یک خطای غیرمنتظره در ارتباط با سرویس TheSportsDB رخ داد:\n`{e}`"
 
     # اگر در هر دو فصل هیچ داده‌ای پیدا نشد
     return f"❌ داده‌ای برای جدول لیگ در فصل جاری یا فصل قبل یافت نشد."
@@ -97,7 +100,6 @@ def send_or_edit_telegram_message(message):
     else:
         print(f"Failed to send/edit message: {response.text}")
 
-# --- خطای اصلی اینجا بود ---
 if __name__ == "__main__":
-    table = get_table_from_thesportsdb() # پرانتزها اضافه شدند
+    table = get_table_from_thesportsdb()
     send_or_edit_telegram_message(table)
