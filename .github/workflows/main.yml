@@ -1,4 +1,4 @@
-name: Scrape Football Table
+name: Scrape Varzesh3 Table
 
 on:
   schedule:
@@ -26,9 +26,8 @@ jobs:
           pip install requests beautifulsoup4 lxml
 
       - name: Run scraper
-        # 'env' و 'run' باید دقیقا در یک سطح و با یک فاصله‌گذاری باشند
         env:
+          # ما فقط به این دو سکرت نیاز داریم
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
-          THESPORTSDB_API_KEY: ${{ secrets.THESPORTSDB_API_KEY }}
         run: python scrape_and_post.py
