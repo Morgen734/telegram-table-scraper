@@ -1,72 +1,51 @@
 import os
 import requests
-from datetime import datetime
+from bs4 import BeautifulSoup
 
 # خواندن اطلاعات از سکرت‌های گیت‌هاب
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHANNEL_ID = os.environ.get("CHANNEL_ID")
-API_KEY = os.environ.get("THESPORTSDB_API_KEY")
 MESSAGE_ID_FILE = "last_message_id.txt" 
 
-def get_table_from_thesportsdb():
-    """
-    جدول لیگ را از سرویس TheSportsDB دریافت می‌کند.
-    اگر جدول فصل جاری موجود نباشد، به صورت خودکار جدول فصل قبل را نمایش می‌دهد.
-    """
-    current_year = datetime.now().year
-    # --- تغییر اصلی اینجاست: فرمت فصل اصلاح شد ---
-    seasons_to_try = [
-        str(current_year),        # ابتدا فصل جاری را امتحان می‌کند (مثلاً 2025)
-        str(current_year - 1)     # در صورت نبود اطلاعات، فصل قبل را امتحان می‌کند (مثلاً 2024)
-    ]
+def get_table_from_varzesh3():
+    """جدول لیگ را مستقیماً از سایت ورزش سه استخراج می‌کند."""
+    url = "https://www.varzesh3.com/football/league/6/%D9%84%DB%8C%DA%AF-%D8%A8%D8%B1%D8%AA%D8%B1-%D8%A7%DB%8C%D8%B1%D8%A7%D9%86"
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'}
     
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36'
-    }
-
-    for season in seasons_to_try:
-        print(f"Attempting to fetch table for season: {season}...")
-        # شناسه لیگ برتر ایران 4455 است
-        url = f"https://www.thesportsdb.com/api/v1/json/{API_KEY}/lookuptable.php?l=4455&s={season}"
+    try:
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.content, "lxml")
         
-        try:
-            response = requests.get(url, headers=headers, timeout=20)
-            response.raise_for_status() # اگر کد وضعیت خطا باشد (مثل 404)، اینجا متوقف می‌شود
-            data = response.json()
-            standings = data.get("table")
+        # پیدا کردن جدول بر اساس آخرین ساختار سایت
+        league_table = soup.find("div", class_="standing-table")
 
-            if standings:
-                print(f"Success! Found table for season: {season}")
-                table_text = f"📊 **جدول لیگ برتر خلیج فارس - فصل {season}**\n\n"
-                table_text += "`"
-                table_text += "R | تیم         | B | W | D | L | Pts\n"
-                table_text += "-------------------------------------\n"
+        if not league_table:
+            return "❌ ساختار جدول در سایت ورزش سه تغییر کرده است. (نیاز به آپدیت مجدد)"
 
-                for team_info in standings:
-                    rank = team_info.get("intRank", "-")
-                    team_name_fa = team_info.get("strTeamAlternate", team_info.get("strTeam", "تیم نامشخص")).strip()
-                    if not team_name_fa: team_name_fa = team_info.get("strTeam", "تیم نامشخص")
-                    played = team_info.get("intPlayed", "-")
-                    wins = team_info.get("intWin", "-")
-                    draws = team_info.get("intDraw", "-")
-                    losses = team_info.get("intLoss", "-")
-                    points = team_info.get("intPoints", "-")
+        table_text = "📊 **جدول لیگ برتر (منبع: ورزش سه)**\n\n"
+        table_text += "`"
+        table_text += "R | تیم         | B | W | D | L | Pts\n"
+        table_text += "-------------------------------------\n"
 
-                    table_text += f"{str(rank):<2}| {team_name_fa:<12}| {str(played):<2}| {str(wins):<2}| {str(draws):<2}| {str(losses):<2}| {str(points):<3}\n"
-                
-                table_text += "`"
-                return table_text
+        rows = league_table.find_all("div", class_="standing-table-row")
+        for row in rows:
+            cols = row.find_all("div", class_="standing-table-cell")
+            
+            if len(cols) < 10: continue
 
-        except requests.exceptions.HTTPError as e:
-            # اگر خطای 404 برای فصل جاری رخ داد، به سراغ فصل بعد می‌رود
-            print(f"HTTP Error for season {season}: {e}. Trying next season.")
-            continue # ادامه حلقه و تست فصل بعدی
-        except Exception as e:
-            print(f"An unexpected error occurred: {e}")
-            return f"⚠️ یک خطای غیرمنتظره در ارتباط با سرویس TheSportsDB رخ داد:\n`{e}`"
-
-    # اگر در هر دو فصل هیچ داده‌ای پیدا نشد
-    return f"❌ داده‌ای برای جدول لیگ در فصل جاری یا فصل قبل یافت نشد."
+            rank, team_name, played, wins, draws, losses, points = (
+                cols[0].text.strip(), cols[2].text.strip(), cols[3].text.strip(),
+                cols[4].text.strip(), cols[5].text.strip(), cols[6].text.strip(),
+                cols[9].text.strip()
+            )
+            table_text += f"{str(rank):<2}| {team_name:<12}| {str(played):<2}| {str(wins):<2}| {str(draws):<2}| {str(losses):<2}| {str(points):<3}\n"
+        
+        table_text += "`"
+        return table_text
+    except Exception as e:
+        print(f"Error scraping Varzesh3: {e}")
+        return f"⚠️ خطایی در خواندن اطلاعات از سایت ورزش سه رخ داد:\n`{e}`"
 
 def send_or_edit_telegram_message(message):
     """پیام را به کانال تلگرام ارسال یا ویرایش می‌کند."""
@@ -101,5 +80,5 @@ def send_or_edit_telegram_message(message):
         print(f"Failed to send/edit message: {response.text}")
 
 if __name__ == "__main__":
-    table = get_table_from_thesportsdb()
+    table = get_table_from_varzesh3()
     send_or_edit_telegram_message(table)
