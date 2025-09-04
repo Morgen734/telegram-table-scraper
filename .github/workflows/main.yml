@@ -1,4 +1,4 @@
-name: Get League Table from Footba11
+name: Get League Table from Sofascore
 
 on:
   schedule:
