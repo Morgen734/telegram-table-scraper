@@ -9,12 +9,14 @@ MESSAGE_ID_FILE = "last_message_id.txt"
 
 def get_table_from_sofascore():
     """جدول لیگ را از API داخلی و پایدار سایت Sofascore دریافت می‌کند."""
-    # این لینک، منبع اصلی داده‌های جدول در خود سایت سوفااسکور است
     # شناسه لیگ ایران: 285 / شناسه فصل جاری: 56932
     url = "https://api.sofascore.com/api/v1/unique-tournament/285/season/56932/standings/total"
+    
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
         'Cache-Control': 'no-cache',
+        # --- این خط جدید برای عبور از محدودیت امنیتی اضافه شده است ---
+        'Referer': 'https://www.sofascore.com/'
     }
     
     try:
@@ -38,14 +40,9 @@ def get_table_from_sofascore():
             
             # برخی نام‌ها در این API نیاز به ترجمه یا اصلاح دارند
             team_name_map = {
-                "Esteghlal Khuzestan": "استقلال خوزستان",
-                "Persepolis": "پرسپولیس",
-                "Esteghlal": "استقلال",
-                "Tractor": "تراکتور",
-                "Zob Ahan": "ذوب آهن",
-                "Malavan": "ملوان",
-                "Gol Gohar": "گل گهر",
-                "Shams Azar Qazvin": "شمس آذر قزوین",
+                "Esteghlal Khuzestan": "استقلال خوزستان", "Persepolis": "پرسپولیس",
+                "Esteghlal": "استقلال", "Tractor": "تراکتور", "Zob Ahan": "ذوب آهن",
+                "Malavan": "ملوان", "Gol Gohar": "گل گهر", "Shams Azar Qazvin": "شمس آذر قزوین",
                 "Mes Rafsanjan": "مس رفسنجان"
             }
             name_fa = team_name_map.get(name_fa, name_fa)
