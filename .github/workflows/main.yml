@@ -1,4 +1,4 @@
-name: Get League Table from Football360
+name: Get League Table from Footba11
 
 on:
   schedule:
